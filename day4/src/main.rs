@@ -37,14 +37,8 @@ fn count_matching_numbers((winning_numbers, numbers): &Card) -> usize {
 fn part1(cards: &[Card]) -> i32 {
     cards
         .iter()
-        .map(|card| {
-            let count = count_matching_numbers(card);
-            if count == 0 {
-                0
-            } else {
-                2_i32.pow((count - 1) as u32)
-            }
-        })
+        .map(count_matching_numbers)
+        .filter_map(|count| (count > 0).then(|| 1 << (count - 1)))
         .sum()
 }
 
@@ -52,8 +46,13 @@ fn part2(cards: &[Card]) -> i32 {
     let mut instances = vec![1; cards.len()];
     for (card_num, card) in cards.iter().enumerate() {
         let matching_number_count = count_matching_numbers(card);
-        for i in card_num + 1..(card_num + 1 + matching_number_count).min(cards.len() - 1) {
-            instances[i] += instances[card_num];
+        let current_instance_count = instances[card_num];
+        for instance in instances
+            .iter_mut()
+            .skip(card_num + 1)
+            .take(matching_number_count)
+        {
+            *instance += current_instance_count;
         }
     }
 
