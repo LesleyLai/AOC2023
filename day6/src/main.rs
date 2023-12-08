@@ -48,14 +48,9 @@ fn part1(input: &str) -> usize {
 }
 
 fn part2(input: &str) -> usize {
-    let mut lines = input.lines().map(|line| {
-        line.split_once(":")
-            .unwrap()
-            .1
-            .replace(" ", "")
-            .parse()
-            .unwrap()
-    });
+    let mut lines = input
+        .lines()
+        .filter_map(|line| line.split_once(":")?.1.replace(" ", "").parse().ok());
     let time: isize = lines.next().unwrap();
     let distance: isize = lines.next().unwrap();
 
