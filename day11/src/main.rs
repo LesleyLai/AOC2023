@@ -1,4 +1,5 @@
 use crate::grid::Grid;
+use std::ops::Not;
 
 mod grid;
 
@@ -16,46 +17,41 @@ const TEST_INPUT: &str = "...#......
 
 const INPUT: &str = include_str!("./input.txt");
 
-fn sum_of_lengths(input: &str, expansion: isize) -> isize {
-    let grid: Vec<_> = input.lines().map(|line| line.as_bytes().to_vec()).collect();
-    let grid = Grid::from_nested(&grid);
+fn parse(input: &str) -> Grid<u8> {
+    let nested: Vec<_> = input.lines().map(|line| line.as_bytes().to_vec()).collect();
+    Grid::from_nested(&nested)
+}
 
-    let mut x_to_expand = vec![];
-    let mut y_to_expand = vec![];
-    for x in 0..grid.width {
-        let mut contain_galaxy = false;
-        for y in 0..grid.height {
-            if grid[(x, y)] == b'#' {
-                contain_galaxy = true;
-                break;
-            }
-        }
-        if !contain_galaxy {
-            x_to_expand.push(x);
-        }
-    }
+fn sum_of_lengths(grid: &Grid<u8>, expansion: isize) -> isize {
+    let x_to_expand: Vec<_> = grid
+        .columns()
+        .enumerate()
+        .filter_map(|(x, mut col)| col.find(|&&c| c == b'#').is_none().then(|| x as isize))
+        .collect();
 
-    for (y, row) in grid.rows().iter().enumerate() {
-        if !row.contains(&b'#') {
-            y_to_expand.push(y as isize);
-        }
-    }
+    let y_to_expand: Vec<_> = grid
+        .rows()
+        .enumerate()
+        .filter_map(|(y, row)| row.contains(&b'#').not().then(|| y as isize))
+        .collect();
 
-    let mut real_x = 0;
-    let mut real_y = 0;
     let mut galaxies = vec![];
-    for y in 0..grid.height {
-        for x in 0..grid.width {
-            let coord = (x, y);
-            if grid[coord] == b'#' {
-                galaxies.push((real_x, real_y));
+
+    {
+        let mut real_y = 0;
+        for y in 0..grid.height {
+            let mut real_x = 0;
+            for x in 0..grid.width {
+                let coord = (x, y);
+                if grid[coord] == b'#' {
+                    galaxies.push((real_x, real_y));
+                }
+                let is_x_expanding = x_to_expand.binary_search(&x).is_ok();
+                real_x += if is_x_expanding { expansion } else { 1 };
             }
-            let is_x_expanding = x_to_expand.binary_search(&x).is_ok();
-            real_x += if is_x_expanding { expansion } else { 1 };
+            let is_y_expanding = y_to_expand.binary_search(&y).is_ok();
+            real_y += if is_y_expanding { expansion } else { 1 };
         }
-        real_x = 0;
-        let is_y_expanding = y_to_expand.binary_search(&y).is_ok();
-        real_y += if is_y_expanding { expansion } else { 1 };
     }
 
     let mut sum = 0;
@@ -71,12 +67,15 @@ fn sum_of_lengths(input: &str, expansion: isize) -> isize {
 }
 
 fn main() {
+    let test_grid = parse(TEST_INPUT);
+    let grid = parse(INPUT);
+
     // part 1
-    assert_eq!(sum_of_lengths(TEST_INPUT, 2), 374);
-    assert_eq!(sum_of_lengths(INPUT, 2), 9648398);
+    assert_eq!(sum_of_lengths(&test_grid, 2), 374);
+    assert_eq!(sum_of_lengths(&grid, 2), 9648398);
 
     // part 2
-    assert_eq!(sum_of_lengths(TEST_INPUT, 10), 1030);
-    assert_eq!(sum_of_lengths(TEST_INPUT, 100), 8410);
-    assert_eq!(sum_of_lengths(INPUT, 1000000), 618800410814);
+    assert_eq!(sum_of_lengths(&test_grid, 10), 1030);
+    assert_eq!(sum_of_lengths(&test_grid, 100), 8410);
+    assert_eq!(sum_of_lengths(&grid, 1000000), 618800410814);
 }
