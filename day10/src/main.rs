@@ -63,6 +63,13 @@ L.L7LFJ|||||FJL7||LJ
 L7JLJL-JLJLJL--JLJ.L
 ";
 
+const TEST_INPUT7: &str = "F-7..
+|.|..
+|FJS7
+||.||
+|L-J|
+L---J";
+
 const INPUT: &str = include_str!("./input.txt");
 
 fn part1(input: &str) -> usize {
@@ -422,21 +429,6 @@ fn part2(input: &str) -> isize {
         }
     }
 
-    // println!();
-    // for y in 16..23 {
-    //     for x in 93..100 {
-    //         match status_grid[(x, y)] {
-    //             None => {
-    //                 print!("?")
-    //             }
-    //             Some(Status::Interior) => print!("I"),
-    //             Some(Status::Exterior) => print!("O"),
-    //             Some(Status::Boundary) => print!("."),
-    //         }
-    //     }
-    //     println!();
-    // }
-
     let mut result = 0;
     for y in 0..status_grid.height {
         for x in 0..status_grid.width {
@@ -458,5 +450,7 @@ fn main() {
     assert_eq!(part2(TEST_INPUT5), 8);
     assert_eq!(part2(TEST_INPUT6), 10);
 
-    //assert_eq!(part2(INPUT), 601);
+    assert_eq!(part2(TEST_INPUT7), 1);
+
+    assert_eq!(part2(INPUT), 601);
 }
