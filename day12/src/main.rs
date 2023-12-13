@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 #[allow(dead_code)]
@@ -20,29 +21,31 @@ struct Entry {
 struct ArrangementCountMemo<'a> {
     row: &'a [u8],
     continuous_groups: &'a [usize],
-    memo_table: HashMap<Entry, usize>,
+    memo_table: RefCell<HashMap<Entry, usize>>,
 }
 
 impl<'a> ArrangementCountMemo<'a> {
     fn new(row: &'a [u8], continuous_groups: &'a [usize]) -> Self {
         ArrangementCountMemo {
-            memo_table: HashMap::new(),
+            memo_table: RefCell::new(HashMap::new()),
             row,
             continuous_groups,
         }
     }
 
-    fn arrangement_count(&mut self, row_index: usize, contiguous_group_index: usize) -> usize {
+    fn arrangement_count(&self, row_index: usize, contiguous_group_index: usize) -> usize {
         let entry = Entry {
             row_index,
             contiguous_group_index,
         };
-        if let Some(memoized) = self.memo_table.get(&entry) {
+        if let Some(memoized) = self.memo_table.borrow().get(&entry) {
             return *memoized;
         }
 
         let row = &self.row[row_index..];
         let continuous_groups = &self.continuous_groups[contiguous_group_index..];
+
+        let skip_first_count = || self.arrangement_count(row_index + 1, contiguous_group_index);
 
         let res = match (row, continuous_groups) {
             // end of input
@@ -59,7 +62,7 @@ impl<'a> ArrangementCountMemo<'a> {
             }
             // dead end
             _ if row.len() < continuous_groups[0] => 0,
-            // remaining
+            // remaining cases
             (&[first, ..], &[continuous_count, ..]) => {
                 match first {
                     b'?' => {
@@ -68,17 +71,17 @@ impl<'a> ArrangementCountMemo<'a> {
                                 self.arrangement_count(
                                     row_index + continuous_count + 1,
                                     contiguous_group_index + 1,
-                                ) + self.arrangement_count(row_index + 1, contiguous_group_index)
+                                ) + skip_first_count()
                             } else if row.len() == continuous_count {
                                 self.arrangement_count(
                                     row_index + continuous_count,
                                     contiguous_group_index + 1,
                                 )
                             } else {
-                                self.arrangement_count(row_index + 1, contiguous_group_index)
+                                skip_first_count()
                             }
                         } else {
-                            self.arrangement_count(row_index + 1, contiguous_group_index)
+                            skip_first_count()
                         }
                     }
                     b'#' => {
@@ -102,21 +105,20 @@ impl<'a> ArrangementCountMemo<'a> {
                             0
                         }
                     }
-                    b'.' => self.arrangement_count(row_index + 1, contiguous_group_index),
+                    b'.' => skip_first_count(),
                     _ => unreachable!("Bad input"),
                 }
             }
         };
 
-        self.memo_table.insert(entry, res);
+        self.memo_table.borrow_mut().insert(entry, res);
 
         res
     }
 }
 
 fn arrangement_count(row: &[u8], continuous_groups: &[usize]) -> usize {
-    let mut memo = ArrangementCountMemo::new(row, continuous_groups);
-    memo.arrangement_count(0, 0)
+    ArrangementCountMemo::new(row, continuous_groups).arrangement_count(0, 0)
 }
 
 fn part1(input: &str) -> usize {
