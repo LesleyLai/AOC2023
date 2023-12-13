@@ -33,9 +33,9 @@ fn part1(input: &[Grid<u8>]) -> isize {
     input
         .iter()
         .map(|grid| {
-            find_horizontal_line(grid, 0, 0)
+            find_line::<false>(grid, 0, None)
                 .map(|x| x * 100)
-                .unwrap_or_else(|| find_vertical_line(grid, 0, 0).unwrap_or(0))
+                .unwrap_or_else(|| find_vertical_line(grid, 0, None).unwrap_or(0))
         })
         .sum()
 }
@@ -44,12 +44,12 @@ fn part2(input: &[Grid<u8>]) -> isize {
     input
         .iter()
         .map(|grid| {
-            let h = find_horizontal_line(grid, 0, 0);
-            find_horizontal_line(grid, 1, h.unwrap_or(0))
+            let h = find_horizontal_line(grid, 0, None);
+            find_horizontal_line(grid, 1, h)
                 .map(|x| x * 100)
                 .unwrap_or_else(|| {
-                    let v = find_vertical_line(grid, 0, 0);
-                    find_vertical_line(grid, 1, v.unwrap_or(0)).unwrap_or(0)
+                    let v = find_vertical_line(grid, 0, None);
+                    find_vertical_line(grid, 1, v).unwrap_or(0)
                 })
         })
         .sum()
@@ -66,59 +66,61 @@ fn difference_count<T: PartialEq>(
         .sum::<isize>()
 }
 
+fn find_line<const IS_VERTICAL: bool>(
+    grid: &Grid<u8>,
+    max_diffs: isize,
+    skip_line_index: Option<isize>,
+) -> Option<isize> {
+    let length = if IS_VERTICAL { grid.width } else { grid.height };
+    (0..length - 1).find_map(|n| {
+        (has_reflection::<IS_VERTICAL>(grid, max_diffs, n) && Some(n + 1) != skip_line_index)
+            .then(|| n + 1)
+    })
+}
+
 fn find_horizontal_line(
     grid: &Grid<u8>,
     max_diffs: isize,
-    skip_line_index: isize,
+    skip_line_index: Option<isize>,
 ) -> Option<isize> {
-    (0..grid.height - 1).find_map(|y| {
-        (has_horizontal_reflection(grid, max_diffs, y) && y + 1 != skip_line_index).then(|| y + 1)
-    })
+    find_line::<false>(grid, max_diffs, skip_line_index)
 }
 
-fn find_vertical_line(grid: &Grid<u8>, max_diffs: isize, skip_line_index: isize) -> Option<isize> {
-    (0..grid.width - 1).find_map(|x| {
-        (has_vertical_reflection(grid, max_diffs, x) && x + 1 != skip_line_index).then(|| x + 1)
-    })
+fn find_vertical_line(
+    grid: &Grid<u8>,
+    max_diffs: isize,
+    skip_line_index: Option<isize>,
+) -> Option<isize> {
+    find_line::<true>(grid, max_diffs, skip_line_index)
 }
 
-fn has_horizontal_reflection(grid: &Grid<u8>, max_diffs: isize, line_index: isize) -> bool {
-    let mut diffs = 0;
+fn has_reflection<const IS_VERTICAL: bool>(
+    grid: &Grid<u8>,
+    max_diffs: isize,
+    line_index: isize,
+) -> bool {
+    let length = if IS_VERTICAL { grid.width } else { grid.height };
+    let iterations = (line_index + 1).min(length - line_index - 1);
 
-    let iterations = (line_index + 1).min(grid.height - line_index - 1);
+    (0..iterations)
+        .scan(0isize, |diffs, i| {
+            let lesser_index = (line_index - i) as usize;
+            let greater_index = (line_index + 1 + i) as usize;
 
-    for i in 0..iterations {
-        let up = (line_index - i) as usize;
-        let down = (line_index + 1 + i) as usize;
-
-        let up_row = grid.rows().nth(up).unwrap();
-        let down_row = grid.rows().nth(down).unwrap();
-        diffs += difference_count(up_row, down_row);
-
-        if diffs > max_diffs {
-            return false;
-        }
-    }
-    true
-}
-
-fn has_vertical_reflection(grid: &Grid<u8>, max_diffs: isize, line_index: isize) -> bool {
-    let mut diffs = 0;
-
-    let iterations = (line_index + 1).min(grid.width - line_index - 1);
-
-    for i in 0..iterations {
-        let left = (line_index - i) as usize;
-        let right = (line_index + 1 + i) as usize;
-        let left_col = grid.columns().nth(left).unwrap();
-        let right_col = grid.columns().nth(right).unwrap();
-        diffs += difference_count(left_col, right_col);
-
-        if diffs > max_diffs {
-            return false;
-        }
-    }
-    true
+            *diffs += if IS_VERTICAL {
+                difference_count(
+                    grid.columns().nth(lesser_index).unwrap(),
+                    grid.columns().nth(greater_index).unwrap(),
+                )
+            } else {
+                difference_count(
+                    grid.rows().nth(lesser_index).unwrap(),
+                    grid.rows().nth(greater_index).unwrap(),
+                )
+            };
+            Some(*diffs)
+        })
+        .all(|diffs| diffs <= max_diffs)
 }
 
 fn main() {
