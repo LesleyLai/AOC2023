@@ -114,6 +114,7 @@ fn part2(input: &str) -> i32 {
                 }
                 if y + 1 < line.len() {
                     let next_line = lines[y + 1];
+
                     for x in before_start..after_end {
                         if next_line[x] == b'*' {
                             add_gear_number(&mut gears, (x, y + 1), num);

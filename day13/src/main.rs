@@ -32,11 +32,7 @@ fn parse_input(input: &str) -> Vec<Grid<u8>> {
 fn part1(input: &[Grid<u8>]) -> isize {
     input
         .iter()
-        .map(|grid| {
-            find_line::<false>(grid, 0, None)
-                .map(|x| x * 100)
-                .unwrap_or_else(|| find_vertical_line(grid, 0, None).unwrap_or(0))
-        })
+        .map(|grid| find_horizontal_line(grid, 0, 0) * 100 + find_vertical_line(grid, 0, 0))
         .sum()
 }
 
@@ -44,13 +40,9 @@ fn part2(input: &[Grid<u8>]) -> isize {
     input
         .iter()
         .map(|grid| {
-            let h = find_horizontal_line(grid, 0, None);
-            find_horizontal_line(grid, 1, h)
-                .map(|x| x * 100)
-                .unwrap_or_else(|| {
-                    let v = find_vertical_line(grid, 0, None);
-                    find_vertical_line(grid, 1, v).unwrap_or(0)
-                })
+            let h = find_horizontal_line(grid, 0, 0);
+            let v = find_vertical_line(grid, 0, 0);
+            find_horizontal_line(grid, 1, h) * 100 + find_vertical_line(grid, 1, v)
         })
         .sum()
 }
@@ -69,28 +61,22 @@ fn difference_count<T: PartialEq>(
 fn find_line<const IS_VERTICAL: bool>(
     grid: &Grid<u8>,
     max_diffs: isize,
-    skip_line_index: Option<isize>,
-) -> Option<isize> {
+    skip_line_index: isize,
+) -> isize {
     let length = if IS_VERTICAL { grid.width } else { grid.height };
-    (0..length - 1).find_map(|n| {
-        (has_reflection::<IS_VERTICAL>(grid, max_diffs, n) && Some(n + 1) != skip_line_index)
-            .then(|| n + 1)
-    })
+    (0..length - 1)
+        .find_map(|n| {
+            (has_reflection::<IS_VERTICAL>(grid, max_diffs, n) && n + 1 != skip_line_index)
+                .then(|| n + 1)
+        })
+        .unwrap_or(0)
 }
 
-fn find_horizontal_line(
-    grid: &Grid<u8>,
-    max_diffs: isize,
-    skip_line_index: Option<isize>,
-) -> Option<isize> {
+fn find_horizontal_line(grid: &Grid<u8>, max_diffs: isize, skip_line_index: isize) -> isize {
     find_line::<false>(grid, max_diffs, skip_line_index)
 }
 
-fn find_vertical_line(
-    grid: &Grid<u8>,
-    max_diffs: isize,
-    skip_line_index: Option<isize>,
-) -> Option<isize> {
+fn find_vertical_line(grid: &Grid<u8>, max_diffs: isize, skip_line_index: isize) -> isize {
     find_line::<true>(grid, max_diffs, skip_line_index)
 }
 

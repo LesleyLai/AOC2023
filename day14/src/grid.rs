@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 
+use std::mem::swap;
+
 type Point = (isize, isize);
 
+#[derive(Eq, PartialEq, Clone, Hash)]
 pub struct Grid<T> {
     pub width: isize,
     pub height: isize,
@@ -11,6 +14,28 @@ pub struct Grid<T> {
 impl<T> Grid<T> {
     fn is_out_of_bound(self: &Self, (x, y): Point) -> bool {
         x < 0 || x >= self.width || y < 0 || y >= self.height
+    }
+
+    /// Flip rows
+    pub fn flip_x(&mut self) {
+        for y in 0..self.height {
+            for x in 0..self.width / 2 {
+                self.data.swap(
+                    (y * self.width + x) as usize,
+                    ((y + 1) * self.width - x - 1) as usize,
+                );
+            }
+        }
+    }
+
+    pub fn transpose(&mut self) {
+        for y in 0..self.height {
+            for x in (y + 1)..self.width {
+                self.data
+                    .swap((x * self.width + y) as usize, (y * self.width + x) as usize);
+            }
+        }
+        swap(&mut self.width, &mut self.height);
     }
 
     pub fn get(&self, (x, y): Point) -> Option<&T> {

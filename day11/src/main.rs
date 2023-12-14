@@ -36,7 +36,6 @@ fn sum_of_lengths(grid: &Grid<u8>, expansion: isize) -> isize {
         .collect();
 
     let mut galaxies = vec![];
-
     {
         let mut real_y = 0;
         for y in 0..grid.height {
